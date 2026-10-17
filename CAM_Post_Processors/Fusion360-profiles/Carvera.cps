@@ -246,7 +246,7 @@ properties = {
   },
   probeMeasureOnly: {
     title      : "Probing: Measure Only",
-    description: "Community firmware: Probe WCS operations measure and check the target WCS (M468 V1) but do not change it. Fusion's checks and Print results work as usual. Can also be set per operation.",
+    description: "Community firmware: Probe WCS operations measure and check the target WCS (M468 without S1) but do not change it. Fusion's checks and Print results work as usual. Can also be set per operation.",
     group      : "1. Preferences",
     type       : "boolean",
     value      : false,
@@ -1973,8 +1973,8 @@ function probeMacroDepth(probeZ) {
 
 /**
   Runs a community firmware probing macro (M461-M466) and writes its result to the target WCS with
-  M468. nominal holds the X, Y, Z or Q (angle) of the probed feature, sizes its nominal D (X) and E (Y) size.
-  Fusion's checks become M468 tolerances (R position, H size, B angle), which halt without writing
+  M468. nominal holds the X, Y, Z or R (angle) of the probed feature, sizes its nominal D (X) and E (Y) size.
+  Fusion's checks become M468 tolerances (T position, U size, Q angle), which halt without writing
   the WCS when they fail, and Print results becomes W1.
 */
 function probeMacro(words, nominal, sizes) {
@@ -2001,21 +2001,21 @@ function probeMacro(words, nominal, sizes) {
   }
   if (probe.checkPosition) {
     if (hasPosition) {
-      result.push("R" + xyzFormat.format(cycle.tolerancePosition));
+      result.push("T" + xyzFormat.format(cycle.tolerancePosition));
     } else {
       warning(subst(localize("The out of position check is not available for '%1' and is ignored."), cycleType));
     }
   }
   if (probe.checkSize) {
     if (sizes) {
-      result.push("H" + xyzFormat.format(cycle.toleranceSize));
+      result.push("U" + xyzFormat.format(cycle.toleranceSize));
     } else {
       warning(subst(localize("The wrong size check is not available for '%1' and is ignored."), cycleType));
     }
   }
   if (probe.checkAngle) {
-    if (nominal.Q !== undefined) {
-      result.push("B" + xyzFormat.format(cycle.toleranceAngle));
+    if (nominal.R !== undefined) {
+      result.push("Q" + xyzFormat.format(cycle.toleranceAngle));
     } else {
       warning(subst(localize("The angle askew check is not available for '%1' and is ignored."), cycleType));
     }
@@ -2023,8 +2023,8 @@ function probeMacro(words, nominal, sizes) {
   if (cycle.printResults) {
     result.push("W1");
   }
-  if (!probe.writeWcs) {
-    result.push("V1");
+  if (probe.writeWcs) {
+    result.push("S1");
   }
   writeBlock.apply(this, result);
 }
@@ -2163,7 +2163,7 @@ function onCyclePoint(x, y, z) {
       var nominalAngle = (cycle.nominalAngle != undefined) ? cycle.nominalAngle : (alongY ? 90 : 0);
       probeProtectedMove({z:probeZ - probe.safeZ});
       probeMacro(["M465", (alongY ? "Y" : "X") + xyzFormat.format(spacing), "E" + xyzFormat.format(a1 * reach)],
-        {Q:alongY ? nominalAngle - 90 : nominalAngle});
+        {R:alongY ? nominalAngle - 90 : nominalAngle});
       break;
 
     default:
